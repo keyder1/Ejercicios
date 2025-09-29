@@ -1,0 +1,152 @@
+import java.util.Arrays;
+import java.util.Stack;
+
+public class PrimForNonCompleteGraph {
+
+    private final int vertices;
+    private final int[][] adjacencyMatrix;
+
+    public PrimForNonCompleteGraph(int vertices) {
+        this.vertices = vertices;
+        this.adjacencyMatrix = new int[vertices][vertices];
+    }
+
+    public void addEdge(int source, int destination, int weight) {
+        // Grafo no dirigido
+        adjacencyMatrix[source][destination] = weight;
+        adjacencyMatrix[destination][source] = weight;
+    }
+
+    /**
+     * Comprueba si el grafo es conexo usando un recorrido DFS.
+     * @return true si es conexo, false en caso contrario.
+     */
+    private boolean isConnected() {
+        if (vertices == 0) return true;
+
+        boolean[] visited = new boolean[vertices];
+        Stack<Integer> stack = new Stack<>();
+        
+        // Empezamos el recorrido desde el primer vértice
+        stack.push(0);
+        visited[0] = true;
+        int count = 1; // Contador de nodos visitados
+
+        while (!stack.isEmpty()) {
+            int u = stack.pop();
+
+            for (int v = 0; v < vertices; v++) {
+                // Si hay una arista y el vértice no ha sido visitado
+                if (adjacencyMatrix[u][v] != 0 && !visited[v]) {
+                    visited[v] = true;
+                    stack.push(v);
+                    count++;
+                }
+            }
+        }
+
+        // Si el número de nodos visitados es menor que el total, el grafo no es conexo.
+        return count == vertices;
+    }
+
+    /**
+     * Implementa el algoritmo de Prim para encontrar el MST.
+     * Primero verifica si el grafo es conexo.
+     */
+    public void findMstWithPrim() {
+        // Paso 1: Verificar la conectividad del grafo
+        if (!isConnected()) {
+            System.out.println("El grafo no tiene árbol de expansión mínima.");
+            return;
+        }
+
+        // Arrays para almacenar el MST, las claves y los nodos ya incluidos
+        int[] parent = new int[vertices];
+        int[] key = new int[vertices];
+        boolean[] mstSet = new boolean[vertices];
+
+        // Inicializar todas las claves como infinito
+        Arrays.fill(key, Integer.MAX_VALUE);
+        
+        // El primer vértice se elige como punto de partida
+        key[0] = 0;
+        parent[0] = -1; // Es la raíz del MST
+
+        // El MST tendrá V-1 aristas
+        for (int count = 0; count < vertices - 1; count++) {
+            // Encontrar el vértice con la clave mínima que aún no está en el MST
+            int u = findMinKeyVertex(key, mstSet);
+            mstSet[u] = true;
+
+            // Actualizar las claves de los vértices adyacentes al vértice elegido
+            for (int v = 0; v < vertices; v++) {
+                if (adjacencyMatrix[u][v] != 0 && !mstSet[v] && adjacencyMatrix[u][v] < key[v]) {
+                    parent[v] = u;
+                    key[v] = adjacencyMatrix[u][v];
+                }
+            }
+        }
+        
+        printMST(parent);
+    }
+
+    /**
+     * Función auxiliar para encontrar el vértice con el valor de clave mínimo.
+     */
+    private int findMinKeyVertex(int[] key, boolean[] mstSet) {
+        int min = Integer.MAX_VALUE;
+        int minIndex = -1;
+
+        for (int v = 0; v < vertices; v++) {
+            if (!mstSet[v] && key[v] < min) {
+                min = key[v];
+                minIndex = v;
+            }
+        }
+        return minIndex;
+    }
+    
+    /**
+     * Imprime el MST construido y su costo total.
+     */
+    private void printMST(int[] parent) {
+        System.out.println("Aristas del Árbol de Expansión Mínima (MST):");
+        System.out.println("Arista \tPeso");
+        int totalCost = 0;
+        for (int i = 1; i < vertices; i++) {
+            int weight = adjacencyMatrix[i][parent[i]];
+            System.out.println(parent[i] + " - " + i + "\t" + weight);
+            totalCost += weight;
+        }
+        System.out.println("Costo total del MST: " + totalCost);
+    }
+
+
+    public static void main(String[] args) {
+        System.out.println("--- PRUEBA 1: Grafo NO Conexo ---");
+        // Grafo con 6 vértices en dos componentes: {0,1,2} y {3,4,5}
+        PrimForNonCompleteGraph nonConnectedGraph = new PrimForNonCompleteGraph(6);
+        nonConnectedGraph.addEdge(0, 1, 4);
+        nonConnectedGraph.addEdge(0, 2, 3);
+        nonConnectedGraph.addEdge(1, 2, 1);
+        // El segundo componente está aislado
+        nonConnectedGraph.addEdge(3, 4, 2);
+        nonConnectedGraph.addEdge(4, 5, 5);
+
+        nonConnectedGraph.findMstWithPrim();
+
+        System.out.println("\n" + "=".repeat(40) + "\n");
+
+        System.out.println("--- PRUEBA 2: Grafo Conexo ---");
+        PrimForNonCompleteGraph connectedGraph = new PrimForNonCompleteGraph(5);
+        connectedGraph.addEdge(0, 1, 2);
+        connectedGraph.addEdge(0, 3, 6);
+        connectedGraph.addEdge(1, 2, 3);
+        connectedGraph.addEdge(1, 3, 8);
+        connectedGraph.addEdge(1, 4, 5);
+        connectedGraph.addEdge(2, 4, 7);
+        connectedGraph.addEdge(3, 4, 9);
+        
+        connectedGraph.findMstWithPrim();
+    }
+}
