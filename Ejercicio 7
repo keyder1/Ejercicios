@@ -1,0 +1,115 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+public class WarshallSCC {
+
+    private final int vertices;
+    private final boolean[][] reachability;
+
+    public WarshallSCC(int vertices) {
+        this.vertices = vertices;
+        this.reachability = new boolean[vertices][vertices];
+    }
+
+    /**
+     * Añade una arista directa al grafo.
+     */
+    public void addEdge(int u, int v) {
+        reachability[u][v] = true;
+    }
+
+    /**
+     * Ejecuta el algoritmo de Warshall y luego encuentra los SCCs.
+     */
+    public void run() {
+        // 1. Ejecutar el algoritmo de Warshall para calcular la alcanzabilidad
+        for (int k = 0; k < vertices; k++) {
+            for (int i = 0; i < vertices; i++) {
+                for (int j = 0; j < vertices; j++) {
+                    reachability[i][j] = reachability[i][j] || (reachability[i][k] && reachability[k][j]);
+                }
+            }
+        }
+        
+        // Añadir la alcanzabilidad de un nodo a sí mismo
+        for(int i = 0; i < vertices; i++) {
+            reachability[i][i] = true;
+        }
+
+        printReachabilityMatrix();
+        findAndPrintSCCs();
+    }
+    
+    /**
+     * Imprime la matriz de alcanzabilidad resultante.
+     */
+    private void printReachabilityMatrix() {
+        System.out.println("Matriz de Alcanzabilidad (Cierre Transitivo):");
+        for (int i = 0; i < vertices; i++) {
+            for (int j = 0; j < vertices; j++) {
+                System.out.print((reachability[i][j] ? 1 : 0) + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("-".repeat(40));
+    }
+    
+    /**
+     * Encuentra e imprime los Componentes Fuertemente Conexos.
+     */
+    private void findAndPrintSCCs() {
+        List<List<Integer>> sccs = new ArrayList<>();
+        boolean[] visited = new boolean[vertices];
+
+        for (int i = 0; i < vertices; i++) {
+            if (!visited[i]) {
+                List<Integer> currentComponent = new ArrayList<>();
+                // Encontrar todos los vértices que son mutuamente alcanzables con i
+                for (int j = 0; j < vertices; j++) {
+                    if (!visited[j] && reachability[i][j] && reachability[j][i]) {
+                        currentComponent.add(j);
+                        visited[j] = true;
+                    }
+                }
+                if (!currentComponent.isEmpty()) {
+                    sccs.add(currentComponent);
+                }
+            }
+        }
+
+        System.out.println("Componentes Fuertemente Conexos (SCCs):");
+        for (List<Integer> scc : sccs) {
+            System.out.println(scc);
+        }
+    }
+
+    public static void main(String[] args) {
+        // Grafo de ejemplo con 8 vértices y 3 SCCs
+        // SCC 1: {0, 1, 2}
+        // SCC 2: {3, 4}
+        // SCC 3: {5, 6, 7}
+        int V = 8;
+        WarshallSCC graph = new WarshallSCC(V);
+
+        // Aristas para el primer componente
+        graph.addEdge(0, 1);
+        graph.addEdge(1, 2);
+        graph.addEdge(2, 0);
+        
+        // Aristas para el segundo componente
+        graph.addEdge(3, 4);
+        graph.addEdge(4, 3);
+        
+        // Aristas para el tercer componente
+        graph.addEdge(5, 6);
+        graph.addEdge(6, 7);
+        graph.addEdge(7, 5);
+
+        // Arista que conecta componentes (pero no los fusiona)
+        graph.addEdge(2, 3);
+        graph.addEdge(4, 5);
+
+        graph.run();
+    }
+}
