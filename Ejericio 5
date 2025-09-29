@@ -1,0 +1,132 @@
+import java.util.*;
+
+public class DijkstraWithPath {
+
+    // Clase para representar un nodo en la lista de adyacencia
+    static class Node implements Comparable<Node> {
+        int vertex;
+        int weight;
+
+        Node(int vertex, int weight) {
+            this.vertex = vertex;
+            this.weight = weight;
+        }
+
+        @Override
+        public int compareTo(Node other) {
+            return Integer.compare(this.weight, other.weight);
+        }
+    }
+
+    private final int vertices;
+    private final List<List<Node>> adjacencyList;
+
+    public DijkstraWithPath(int vertices) {
+        this.vertices = vertices;
+        adjacencyList = new ArrayList<>(vertices);
+        for (int i = 0; i < vertices; i++) {
+            adjacencyList.add(new ArrayList<>());
+        }
+    }
+
+    public void addEdge(int source, int destination, int weight) {
+        adjacencyList.get(source).add(new Node(destination, weight));
+    }
+
+    /**
+     * Implementa el algoritmo de Dijkstra desde un vértice de origen.
+     * @param startVertex El vértice desde el cual calcular los caminos cortos.
+     */
+    public void findShortestPaths(int startVertex) {
+        PriorityQueue<Node> pq = new PriorityQueue<>();
+        int[] distances = new int[vertices];
+        int[] parent = new int[vertices]; // Arreglo para reconstruir el camino
+
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        Arrays.fill(parent, -1); // -1 indica que no hay predecesor
+
+        distances[startVertex] = 0;
+        pq.add(new Node(startVertex, 0));
+
+        while (!pq.isEmpty()) {
+            Node currentNode = pq.poll();
+            int u = currentNode.vertex;
+
+            // Si ya procesamos este nodo con un costo menor, lo saltamos.
+            if (currentNode.weight > distances[u]) {
+                continue;
+            }
+
+            for (Node neighbor : adjacencyList.get(u)) {
+                int v = neighbor.vertex;
+                int weight = neighbor.weight;
+
+                if (distances[u] + weight < distances[v]) {
+                    distances[v] = distances[u] + weight;
+                    parent[v] = u; // ¡Aquí guardamos el camino!
+                    pq.add(new Node(v, distances[v]));
+                }
+            }
+        }
+        
+        printAllPaths(startVertex, distances, parent);
+    }
+    
+    /**
+     * Imprime los resultados para todos los vértices alcanzables.
+     */
+    private void printAllPaths(int startVertex, int[] distances, int[] parent) {
+        System.out.println("Caminos más cortos desde el vértice " + startVertex + ":");
+
+        for (int i = 0; i < vertices; i++) {
+            if (i == startVertex) {
+                System.out.println("Destino " + i + ": " + startVertex + " (costo 0)");
+                continue;
+            }
+            if (distances[i] == Integer.MAX_VALUE) {
+                System.out.println("Destino " + i + ": No hay ruta posible.");
+            } else {
+                System.out.print("Destino " + i + ": ");
+                printPath(i, parent);
+                System.out.println(" (costo " + distances[i] + ")");
+            }
+        }
+    }
+
+    /**
+     * Reconstruye e imprime el camino hacia un vértice específico.
+     */
+    private void printPath(int currentVertex, int[] parent) {
+        // Caso base para la recursión: si llegamos al origen.
+        if (currentVertex == -1) {
+            return;
+        }
+        // Llamada recursiva para el predecesor
+        printPath(parent[currentVertex], parent);
+        
+        // Imprime el vértice actual (después de que sus predecesores se hayan impreso)
+        if (parent[currentVertex] != -1) {
+             System.out.print(" -> ");
+        }
+        System.out.print(currentVertex);
+    }
+
+
+    public static void main(String[] args) {
+        int V = 6;
+        DijkstraWithPath graph = new DijkstraWithPath(V);
+
+        graph.addEdge(0, 1, 4);
+        graph.addEdge(0, 2, 2);
+        graph.addEdge(1, 3, 5);
+        graph.addEdge(2, 1, 1);
+        graph.addEdge(2, 3, 8);
+        graph.addEdge(2, 4, 10);
+        graph.addEdge(3, 4, 2);
+        graph.addEdge(3, 5, 6);
+        graph.addEdge(4, 5, 3);
+
+        int startNode = 0;
+        graph.findShortestPaths(startNode);
+    }
+}
