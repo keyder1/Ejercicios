@@ -1,0 +1,232 @@
+import java.util.*;
+
+public class MSTAlgorithms {
+
+    // Clase interna para representar una arista para el algoritmo de Kruskal
+    static class Edge implements Comparable<Edge> {
+        int source;
+        int destination;
+        int weight;
+
+        public Edge(int source, int destination, int weight) {
+            this.source = source;
+            this.destination = destination;
+            this.weight = weight;
+        }
+
+        // Usado para ordenar las aristas por peso
+        @Override
+        public int compareTo(Edge other) {
+            return this.weight - other.weight;
+        }
+    }
+
+    // Clase interna para la estructura de datos Union-Find (para detectar ciclos en Kruskal)
+    static class UnionFind {
+        private int[] parent;
+
+        public UnionFind(int n) {
+            parent = new int[n];
+            for (int i = 0; i < n; i++) {
+                parent[i] = i; // Cada nodo es su propio padre inicialmente
+            }
+        }
+
+        // Encuentra el representante (raíz) del conjunto al que pertenece i
+        public int find(int i) {
+            if (parent[i] == i) {
+                return i;
+            }
+            // Compresión de ruta para optimizar
+            return parent[i] = find(parent[i]);
+        }
+
+        // Une los conjuntos de x e y
+        public void union(int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+            if (rootX != rootY) {
+                parent[rootX] = rootY;
+            }
+        }
+    }
+
+    private final int vertices;
+    private final int[][] adjacencyMatrix;
+
+    public MSTAlgorithms(int vertices) {
+        this.vertices = vertices;
+        this.adjacencyMatrix = new int[vertices][vertices];
+    }
+
+    /**
+     * Genera un grafo aleatorio, conexo y no dirigido.
+     * @param numEdges El número mínimo de aristas.
+     */
+    public void generateRandomGraph(int numEdges) {
+        if (numEdges < vertices - 1) {
+            throw new IllegalArgumentException("El número de aristas debe ser al menos V-1 para que el grafo sea conexo.");
+        }
+
+        Random rand = new Random();
+        int edgesAdded = 0;
+
+        // 1. Asegurar que el grafo sea conexo creando un camino inicial
+        for (int i = 0; i < vertices - 1; i++) {
+            int weight = rand.nextInt(100) + 1; // Pesos entre 1 y 100
+            adjacencyMatrix[i][i + 1] = weight;
+            adjacencyMatrix[i + 1][i] = weight;
+            edgesAdded++;
+        }
+
+        // 2. Añadir las aristas restantes de forma aleatoria hasta llegar al mínimo
+        while (edgesAdded < numEdges) {
+            int u = rand.nextInt(vertices);
+            int v = rand.nextInt(vertices);
+
+            // Evitar bucles (u==v) y aristas duplicadas
+            if (u != v && adjacencyMatrix[u][v] == 0) {
+                int weight = rand.nextInt(100) + 1;
+                adjacencyMatrix[u][v] = weight;
+                adjacencyMatrix[v][u] = weight;
+                edgesAdded++;
+            }
+        }
+    }
+    
+    /**
+     * Imprime la matriz de adyacencia del grafo.
+     */
+    public void printAdjacencyMatrix() {
+        System.out.println("Matriz de Adyacencia Generada:");
+        for (int i = 0; i < vertices; i++) {
+            for (int j = 0; j < vertices; j++) {
+                System.out.printf("%4d", adjacencyMatrix[i][j]);
+            }
+            System.out.println();
+        }
+        System.out.println("----------------------------------------");
+    }
+
+    /**
+     * Calcula el costo del MST usando el algoritmo de Prim.
+     */
+    public int primMST() {
+        int[] parent = new int[vertices];    // Array para almacenar el MST construido
+        int[] key = new int[vertices];       // Valores clave para elegir la arista de peso mínimo
+        boolean[] mstSet = new boolean[vertices]; // Para rastrear vértices incluidos en el MST
+
+        // Inicializar todas las claves como infinito y mstSet como falso
+        Arrays.fill(key, Integer.MAX_VALUE);
+        Arrays.fill(mstSet, false);
+
+        // El primer vértice siempre se incluye en el MST.
+        key[0] = 0;
+        parent[0] = -1; // El primer nodo es la raíz
+
+        for (int count = 0; count < vertices - 1; count++) {
+            // Encuentra el vértice con el valor de clave mínimo que no está aún en el MST
+            int u = -1;
+            int minKey = Integer.MAX_VALUE;
+            for (int v = 0; v < vertices; v++) {
+                if (!mstSet[v] && key[v] < minKey) {
+                    minKey = key[v];
+                    u = v;
+                }
+            }
+            
+            if (u == -1) continue; // Si no se encuentra un vértice, continuar
+
+            // Añade el vértice encontrado al conjunto del MST
+            mstSet[u] = true;
+
+            // Actualiza los valores de clave de los vértices adyacentes
+            for (int v = 0; v < vertices; v++) {
+                if (adjacencyMatrix[u][v] != 0 && !mstSet[v] && adjacencyMatrix[u][v] < key[v]) {
+                    parent[v] = u;
+                    key[v] = adjacencyMatrix[u][v];
+                }
+            }
+        }
+
+        // Calcula el costo total del MST sumando las claves
+        int totalCost = 0;
+        for (int k : key) {
+            totalCost += k;
+        }
+        return totalCost;
+    }
+
+    /**
+     * Calcula el costo del MST usando el algoritmo de Kruskal.
+     */
+    public int kruskalMST() {
+        List<Edge> edges = new ArrayList<>();
+        for (int i = 0; i < vertices; i++) {
+            for (int j = i + 1; j < vertices; j++) { // j=i+1 para no duplicar aristas
+                if (adjacencyMatrix[i][j] != 0) {
+                    edges.add(new Edge(i, j, adjacencyMatrix[i][j]));
+                }
+            }
+        }
+
+        // Ordena todas las aristas por peso
+        Collections.sort(edges);
+
+        UnionFind uf = new UnionFind(vertices);
+        int mstCost = 0;
+        int edgesInMST = 0;
+
+        for (Edge edge : edges) {
+            // Si ya tenemos V-1 aristas, hemos terminado
+            if (edgesInMST == vertices - 1) {
+                break;
+            }
+
+            int rootSource = uf.find(edge.source);
+            int rootDest = uf.find(edge.destination);
+
+            // Si incluir esta arista no forma un ciclo
+            if (rootSource != rootDest) {
+                mstCost += edge.weight;
+                uf.union(edge.source, edge.destination);
+                edgesInMST++;
+            }
+        }
+        return mstCost;
+    }
+
+
+    public static void main(String[] args) {
+        final int NUM_VERTICES = 10;
+        final int MIN_EDGES = 15;
+
+        // 1. Crear el grafo y generar su estructura aleatoria
+        MSTAlgorithms graph = new MSTAlgorithms(NUM_VERTICES);
+        graph.generateRandomGraph(MIN_EDGES);
+        
+        // 2. Construir y mostrar la matriz de adyacencia
+        graph.printAdjacencyMatrix();
+
+        // 3. Calcular el costo del MST con Prim
+        System.out.println("Calculando el costo del MST con el Algoritmo de Prim...");
+        int primCost = graph.primMST();
+        System.out.println("Costo del MST (Prim): " + primCost);
+        System.out.println("----------------------------------------");
+
+        // 4. Calcular el costo del MST con Kruskal
+        System.out.println("Calculando el costo del MST con el Algoritmo de Kruskal...");
+        int kruskalCost = graph.kruskalMST();
+        System.out.println("Costo del MST (Kruskal): " + kruskalCost);
+        System.out.println("----------------------------------------");
+        
+        // 5. Comparar resultados
+        System.out.println("\nVERIFICACIÓN FINAL:");
+        if (primCost == kruskalCost) {
+            System.out.println("✅ ¡Éxito! Los costos obtenidos por Prim y Kruskal coinciden.");
+        } else {
+            System.out.println("❌ ¡Error! Los costos no coinciden. Revisa la implementación.");
+        }
+        System.out.println("Costo final del Árbol de Expansión Mínima: " + primCost);
+    }
+}
