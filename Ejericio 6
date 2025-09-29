@@ -1,0 +1,111 @@
+import java.util.ArrayList;
+import java.util.List;
+
+public class FloydWarshallWithPath {
+
+    private final int vertices;
+    private final int[][] dist;
+    private final int[][] next;
+    private static final int INF = 99999; // Usamos un valor grande para representar el infinito
+
+    public FloydWarshallWithPath(int vertices) {
+        this.vertices = vertices;
+        this.dist = new int[vertices][vertices];
+        this.next = new int[vertices][vertices];
+
+        // Inicializar las matrices
+        for (int i = 0; i < vertices; i++) {
+            for (int j = 0; j < vertices; j++) {
+                if (i == j) {
+                    dist[i][j] = 0;
+                } else {
+                    dist[i][j] = INF;
+                }
+                next[i][j] = -1; // -1 indica que no hay un sucesor directo inicial
+            }
+        }
+    }
+
+    public void addEdge(int u, int v, int weight) {
+        dist[u][v] = weight;
+        next[u][v] = v; // Para ir de u a v, el siguiente paso es v
+    }
+
+    /**
+     * Ejecuta el algoritmo de Floyd-Warshall.
+     */
+    public void findShortestPaths() {
+        // El algoritmo principal con los 3 bucles anidados
+        for (int k = 0; k < vertices; k++) {
+            for (int i = 0; i < vertices; i++) {
+                for (int j = 0; j < vertices; j++) {
+                    // Si el camino i->k + k->j es más corto que el camino directo i->j
+                    if (dist[i][k] != INF && dist[k][j] != INF && dist[i][k] + dist[k][j] < dist[i][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                        next[i][j] = next[i][k]; // ¡Aquí se actualiza la ruta!
+                    }
+                }
+            }
+        }
+
+        printAllPaths();
+    }
+
+    /**
+     * Imprime los resultados para todos los pares de vértices.
+     */
+    private void printAllPaths() {
+        System.out.println("Distancias mínimas y caminos entre todos los pares de vértices:");
+        for (int i = 0; i < vertices; i++) {
+            for (int j = 0; j < vertices; j++) {
+                if (i == j) continue; // No mostramos el camino de un nodo a sí mismo
+
+                if (dist[i][j] == INF) {
+                    System.out.println("Distancia mínima " + i + " → " + j + " = ∞, Camino: No hay ruta posible.");
+                } else {
+                    System.out.print("Distancia mínima " + i + " → " + j + " = " + dist[i][j] + ", Camino: ");
+                    reconstructPath(i, j);
+                    System.out.println();
+                }
+            }
+            if (i < vertices - 1) System.out.println("-".repeat(60));
+        }
+    }
+
+    /**
+     * Reconstruye el camino del vértice u al vértice v.
+     */
+    private void reconstructPath(int u, int v) {
+        if (next[u][v] == -1) {
+            System.out.print("No hay camino");
+            return;
+        }
+
+        List<Integer> path = new ArrayList<>();
+        path.add(u);
+        while (u != v) {
+            u = next[u][v];
+            path.add(u);
+        }
+
+        for (int i = 0; i < path.size(); i++) {
+            System.out.print(path.get(i) + (i == path.size() - 1 ? "" : " → "));
+        }
+    }
+
+    public static void main(String[] args) {
+        int V = 4;
+        FloydWarshallWithPath graph = new FloydWarshallWithPath(V);
+
+        // Grafo de ejemplo
+        graph.addEdge(0, 1, 3);
+        graph.addEdge(0, 3, 7);
+        graph.addEdge(1, 0, 8);
+        graph.addEdge(1, 2, 2);
+        graph.addEdge(2, 0, 5);
+        graph.addEdge(2, 3, 1);
+        graph.addEdge(3, 0, 2);
+
+        graph.findShortestPaths();
+    }
+}
